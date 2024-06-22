@@ -27,6 +27,7 @@ import javax.swing.JButton;
 import javax.swing.JFileChooser;
 import javax.swing.JScrollPane;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.util.FileDataDao;
 import com.util.SwingUtil;
 import java.io.FileWriter;
 import java.net.URL;
@@ -123,11 +124,200 @@ public class MyApp extends JFrame {
     }
 
     private void doStartImport() {
+        showTaskTableDialogForImport();
         importTasksFromJsonFile();
     }
 
     private void doStartExport() {
         showTaskTableDialogForExport();
+    }
+
+    private void showTaskTableDialogForImport() {
+    }
+
+    private void showTasksWithProjectDialogForImport(List<Project> dataList, File selectedFile) {
+        JDialog dialog = new JDialog(this, "Imported Tasks", true);
+        dialog.setSize(500, 300);
+        dialog.setLocationRelativeTo(this);
+
+        // Create table to display tasks
+        String[] columnNames = {"Task_ID", "Task_Name", "Task_Description", "Project_Name"}; // Adjust according to your Task entity
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        JTable table = new JTable(tableModel);
+
+        // Populate table with task data
+        for (Project project : dataList) {
+
+            for (Task task : project.getTasks()) {
+                Object[] rowData = {task.getTaskId(), task.getTaskName(), task.getDescription(), project.getProjectName()};
+                tableModel.addRow(rowData);
+            }
+
+        }
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+
+        // Create panel for buttons
+        JPanel buttonPanel = new JPanel();
+        JButton confirmButton = new JButton("Confirm");
+        JButton cancelButton = new JButton("Cancel");
+
+        confirmButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Handle confirm action
+
+                // Change this path to the directory where you want to save the imported file
+//                String importDirectory = "/path/to/your/import/directory/";
+//                String importPath = FileHandler.getDataFilePath();
+                // Get the filename without path to save in the import directory
+//                String filename = selectedFile.getName();
+                // Prepare the file destination path
+//                File importFile = new File(importPath);
+                // Copy the selected file to the import directory
+//                selectedFile.renameTo(importFile);
+                FileDataDao.writeProjectsToFile(dataList);
+
+//                JOptionPane.showMessageDialog(this, "File imported successfully to " + importFile.getAbsolutePath());
+                JOptionPane.showMessageDialog(dialog, "Data Imported successfully.");
+                dialog.dispose();
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // Handle cancel action
+                dialog.dispose();
+            }
+        });
+
+        buttonPanel.add(confirmButton);
+        buttonPanel.add(cancelButton);
+
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
+    }
+
+    private void importTasksFromJsonFile() {
+        JFileChooser fileChooser = new JFileChooser();
+        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+            File selectedFile = fileChooser.getSelectedFile();
+            ObjectMapper objectMapper = new ObjectMapper();
+            try {
+
+                // Assuming Task is your entity class
+                List<Project> dataList = objectMapper.readValue(selectedFile, objectMapper.getTypeFactory().constructCollectionType(List.class, Project.class));
+
+                showTasksWithProjectDialogForImport(dataList, selectedFile);
+
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error importing file: " + ex.getMessage());
+            }
+        }
+    }
+
+    public void doSaveFromImport() {
+
+    }
+
+    public void showTaskTableDialogForExport() {
+        System.out.println("====== showTaskTableDialogForExport in Export ===========");
+
+        // Create a JDialog to hold the table
+        JDialog dialog = new JDialog(this, "Tasks Data Table", true);
+        dialog.setSize(500, 300);
+        dialog.setLocationRelativeTo(this);
+
+        // Create a DefaultTableModel
+        DefaultTableModel model = new DefaultTableModel();
+        model.addColumn("Task ID");
+        model.addColumn("Name");
+        model.addColumn("Description");
+        model.addColumn("Active Status");
+        model.addColumn("Project Name");
+//        TaskDao taskDao = new TaskDao();
+        ProjectDao projectDao = new ProjectDao();
+
+//        List<Task> tasks = taskDao.getAllTasks();
+        List<Project> listP = projectDao.getAllProjects();
+
+        for (Project p : listP) {
+
+            for (Task task : p.getTasks()) {
+                model.addRow(new Object[]{task.getTaskId(), task.getTaskName(), task.getDescription(), task.isActive(), p.getProjectName()});
+            }
+
+        }
+
+        // Add tasks to the model
+//        for (Task task : tasks) {
+//            model.addRow(new Object[]{task.getTaskId(), task.getTaskName(), task.getDescription(), task.isActive()});
+//        }
+        // Create a JTable with the model
+        JTable table = new JTable(model);
+
+        // Export
+        // Create radio buttons for export type
+        JRadioButton textRadioButton = new JRadioButton("Text", true);
+        JRadioButton jsonRadioButton = new JRadioButton("JSON");
+
+        // Group the radio buttons
+        ButtonGroup group = new ButtonGroup();
+        group.add(textRadioButton);
+        group.add(jsonRadioButton);
+
+        // Create a panel for the radio buttons
+        JPanel radioPanel = new JPanel();
+        radioPanel.add(textRadioButton);
+        radioPanel.add(jsonRadioButton);
+
+        // Create buttons
+//        JButton exportTextButton = new JButton("Export as Text");
+//        JButton exportJsonButton = new JButton("Export as JSON");
+// Create buttons
+        JButton exportButton = new JButton("Export");
+        JButton cancelButton = new JButton("Cancel");
+
+//        ProjectDao projectDao = new ProjectDao();
+        List<Project> data = projectDao.getAllProjects();
+        // Add ActionListeners for the buttons
+        exportButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (textRadioButton.isSelected()) {
+                    exportTasksToTextFile(data, dialog);
+                } else {
+                    exportTasksToJsonFile(data, dialog);
+                }
+                dialog.dispose();
+            }
+        });
+
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                dialog.dispose();
+            }
+        });
+
+        // Create a panel for the buttons
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.add(exportButton);
+        buttonPanel.add(cancelButton);
+        // Add the button panel to the dialog
+        // Add the radio panel and button panel to the dialog
+        dialog.add(radioPanel, BorderLayout.NORTH);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        // Add the table to a JScrollPane
+        JScrollPane scrollPane = new JScrollPane(table);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        // Show the dialog
+        dialog.setVisible(true);
+
+//        frame.add(scrollPane, BorderLayout.CENTER);
     }
 
 //    private void importTasksFromJsonFile() {
@@ -151,31 +341,6 @@ public class MyApp extends JFrame {
 //            }
 //        }
 //    }
-    private void importTasksFromJsonFile() {
-        JFileChooser fileChooser = new JFileChooser();
-        if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            ObjectMapper objectMapper = new ObjectMapper();
-            try {
-                // Change this path to the directory where you want to save the imported file
-//                String importDirectory = "/path/to/your/import/directory/";
-                String importPath = FileHandler.getDataFilePath();
-
-                // Get the filename without path to save in the import directory
-//                String filename = selectedFile.getName();
-                // Prepare the file destination path
-                File importFile = new File(importPath);
-
-                // Copy the selected file to the import directory
-                selectedFile.renameTo(importFile);
-
-                JOptionPane.showMessageDialog(this, "File imported successfully to " + importFile.getAbsolutePath());
-            } catch (Exception ex) {
-                JOptionPane.showMessageDialog(this, "Error importing file: " + ex.getMessage());
-            }
-        }
-    }
-
     private void exportTasksToTextFile(List<Project> projects, JDialog dialog) {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setSelectedFile(new File("tasks.txt"));
@@ -214,93 +379,6 @@ public class MyApp extends JFrame {
                 JOptionPane.showMessageDialog(this, "Error exporting tasks: " + ex.getMessage());
             }
         }
-    }
-
-    public void showTaskTableDialogForExport() {
-        System.out.println("====== showTaskTableDialogForExport in Export ===========");
-
-        // Create a JDialog to hold the table
-        JDialog dialog = new JDialog(this, "Tasks Data Table", true);
-        dialog.setSize(500, 300);
-        dialog.setLocationRelativeTo(this);
-
-        // Create a DefaultTableModel
-        DefaultTableModel model = new DefaultTableModel();
-        model.addColumn("Task ID");
-        model.addColumn("Name");
-        model.addColumn("Description");
-        model.addColumn("Active Status");
-        TaskDao taskDao = new TaskDao();
-
-        List<Task> tasks = taskDao.getAllTasks();
-
-        // Add tasks to the model
-        for (Task task : tasks) {
-            model.addRow(new Object[]{task.getTaskId(), task.getTaskName(), task.getDescription(), task.isActive()});
-        }
-
-        // Create a JTable with the model
-        JTable table = new JTable(model);
-
-        // Export
-        // Create radio buttons for export type
-        JRadioButton textRadioButton = new JRadioButton("Text", true);
-        JRadioButton jsonRadioButton = new JRadioButton("JSON");
-
-        // Group the radio buttons
-        ButtonGroup group = new ButtonGroup();
-        group.add(textRadioButton);
-        group.add(jsonRadioButton);
-
-        // Create a panel for the radio buttons
-        JPanel radioPanel = new JPanel();
-        radioPanel.add(textRadioButton);
-        radioPanel.add(jsonRadioButton);
-
-        // Create buttons
-//        JButton exportTextButton = new JButton("Export as Text");
-//        JButton exportJsonButton = new JButton("Export as JSON");
-// Create buttons
-        JButton exportButton = new JButton("Export");
-        JButton cancelButton = new JButton("Cancel");
-
-        ProjectDao projectDao = new ProjectDao();
-        List<Project> data = projectDao.getAllProjects();
-        // Add ActionListeners for the buttons
-        exportButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (textRadioButton.isSelected()) {
-                    exportTasksToTextFile(data, dialog);
-                } else {
-                    exportTasksToJsonFile(data, dialog);
-                }
-                dialog.dispose();
-            }
-        });
-
-        cancelButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                dialog.dispose();
-            }
-        });
-
-        // Create a panel for the buttons
-        JPanel buttonPanel = new JPanel();
-        buttonPanel.add(exportButton);
-        buttonPanel.add(cancelButton);
-        // Add the button panel to the dialog
-        // Add the radio panel and button panel to the dialog
-        dialog.add(radioPanel, BorderLayout.NORTH);
-        dialog.add(buttonPanel, BorderLayout.SOUTH);
-        // Add the table to a JScrollPane
-        JScrollPane scrollPane = new JScrollPane(table);
-        dialog.add(scrollPane, BorderLayout.CENTER);
-        // Show the dialog
-        dialog.setVisible(true);
-
-//        frame.add(scrollPane, BorderLayout.CENTER);
     }
 
     public void showLoginPanel() {

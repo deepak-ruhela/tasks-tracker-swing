@@ -100,7 +100,8 @@ public class HomePanel extends JPanel {
         JButton editTaskButton = new JButton("Edit Task", swingUtil.createImageIcon("/edit.png"));
         JButton deleteTaskButton = new JButton("Delete Task", swingUtil.createImageIcon("/delete.png"));
 //        JButton markTaskButton = new JButton("Mark Task");
-        checkboxMarkTask = new JCheckBox("Mark Task", swingUtil.createImageIcon("/checked.png"));
+//        checkboxMarkTask = new JCheckBox("Mark Task", swingUtil.createImageIcon("/checked.png"));
+        checkboxMarkTask = new JCheckBox("Mark Task");
 
         // task Operations
         addTaskButton.addActionListener(e -> doAddTask());
@@ -772,14 +773,22 @@ public class HomePanel extends JPanel {
         String newTask = newTaskField.getText().trim();
 
         if (selectedProject != null && !newTask.isEmpty()) {
-            Task task = new Task();
-            task.setTaskName(newTask);
-            projects.get(selectedProject).add(task);
-            ProjectDao pDao = new ProjectDao();
-            int projectId = pDao.getProjectIdByProjectName(selectedProject);
-            taskDao.addTaskToProject(projectId, newTask);
+            int taskId = taskDao.getTaskIdByTaskName(newTask);
 
-            newTaskField.setText("");
+            if (taskId == 0) {
+                Task task = new Task();
+                task.setTaskName(newTask);
+                projects.get(selectedProject).add(task);
+                ProjectDao pDao = new ProjectDao();
+                int projectId = pDao.getProjectIdByProjectName(selectedProject);
+                taskDao.addTaskToProject(projectId, newTask);
+
+                newTaskField.setText("");
+
+            } else {
+                JOptionPane.showMessageDialog(myApp, "task with this name alreday exists kindly use any other name.");
+            }
+
 //                    updateTaskList(selectedProject);
             loadTasksForSelectedProject();
 
